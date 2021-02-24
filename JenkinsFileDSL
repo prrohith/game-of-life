@@ -1,5 +1,15 @@
 pipeline{
-    agent{none}
+    agent{label 'ltecomm'}
+    triggers{
+        cron('H * * * 1-5')
+    }
+    parameters{
+        string(name:'MavenGoal',defaultVaule:'clean package',description:'Enter your maven goal')
+    }
+    options{
+        timeout(unit: 'MINUTES', time:30)
+        buildDiscarder(logRotator(numToKeepStr: '3'))
+    }
     stages{
         stage('scm'){
             steps{
@@ -14,7 +24,14 @@ pipeline{
         stage('post build'){
             steps{
                 junit 'gameoflife-web/target/surefire-reports/*.xml'
-                artifact 'gameoflife-web/target/*.war'
+                archiveArtifacts 'gameoflife-web/target/*.war'
+                stash name:'warfile', includes: 'gameoflife-web/target/*.war'
+            }
+        }
+        stage('copy war file to node'){
+            agent{label ''}
+            steps{
+                unstash name:'warfile'
             }
         }
     }
